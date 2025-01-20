@@ -17,6 +17,7 @@ class PostCreate(PostBase):
 class Post(PostBase): # PostBase is the parent class of Post class 
     id: int
     created_at: datetime
+    owner_id: int
         
     model_config = ConfigDict(from_attributes=True)
 

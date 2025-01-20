@@ -20,7 +20,7 @@ my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.Post])
-def get_posts(db: Session = Depends(get_db), get_current_user: int = Depends(oauth2.get_current_user)):
+def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         posts = db.query(models.Post).all()
         return posts
@@ -32,9 +32,9 @@ def get_posts(db: Session = Depends(get_db), get_current_user: int = Depends(oau
         )
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), get_current_user: int = Depends(oauth2.get_current_user)):
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
-        new_post = models.Post(**post.dict())
+        new_post = models.Post(owner_id=current_user.id, **post.dict())
         db.add(new_post)
         db.commit()
         db.refresh(new_post)
@@ -52,7 +52,7 @@ def get_latest_post():
     return post
 
 @router.get("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.Post)
-def get_post(id: int, db: Session = Depends(get_db)):
+def get_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     post = db.query(models.Post).filter(models.Post.id == id).first()
 
     if not post:
@@ -61,22 +61,28 @@ def get_post(id: int, db: Session = Depends(get_db)):
     return post
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int, db: Session = Depends(get_db)):
+def delete_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     post = db.query(models.Post).filter(models.Post.id == id)
     if not post.first(): # if post not found
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"Post with id {id} was not found")
+    if post.first().owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="You are not allowed to perform requested action") # if the post does not belong to the current user 
     post.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT) # return a message
 
 @router.put("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.Post)
-def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):
+def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     post_to_update = db.query(models.Post).filter(models.Post.id == id)
     
     if not post_to_update.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"Post with id {id} was not found")
+    if post_to_update.first().owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="You are not allowed to perform requested action") # if the post does not belong to the current user 
     
     post_to_update.update(post.dict(), synchronize_session=False)
     db.commit()
