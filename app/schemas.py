@@ -4,25 +4,6 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 from datetime import datetime
 # pydantic : a library fot Type of the model
 
-############################################################# ..... Post Schemas.... #############################################################
-
-class PostBase(BaseModel):
-    title: str
-    content: str
-    published: bool = True
-
-class PostCreate(PostBase):
-    pass
-
-class Post(PostBase): # PostBase is the parent class of Post class 
-    id: int
-    created_at: datetime
-    owner_id: int
-        
-    model_config = ConfigDict(from_attributes=True)
-
-
-
 ############################################################# ..... User Schemas.... #############################################################
 
 class UserCreate(BaseModel):
@@ -48,6 +29,27 @@ class UserLogin(BaseModel):
     password: str
 
     model_config = ConfigDict(from_attributes=True)
+
+############################################################# ..... Post Schemas.... #############################################################
+
+class PostBase(BaseModel):
+    title: str
+    content: str
+    published: bool = True
+
+class PostCreate(PostBase):
+    pass
+
+class Post(PostBase): # PostBase is the parent class of Post class 
+    id: int
+    created_at: datetime
+    owner_id: int
+    owner: UserOut
+        
+    model_config = ConfigDict(from_attributes=True)
+
+
+############################################################# ..... Token Schemas.... #############################################################
 
 class Token(BaseModel):
     access_token: str
