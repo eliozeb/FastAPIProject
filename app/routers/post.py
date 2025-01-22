@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 from fastapi import Body, Depends, FastAPI, HTTPException, Response, status, APIRouter
 from typing import List, Optional
+from sqlalchemy import func
 from .. import oauth2, schemas, models
 from app.database import get_db
 
@@ -19,13 +20,44 @@ my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1
   
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.Post])
+@router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.PostOut])
+#@router.get("/")
 def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user), limit: int = 10, skip: int = 0, search: Optional[str] = None):
     try:
-        posts = db.query(models.Post).order_by(models.Post.id).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
+       # posts = db.query(models.Post).order_by(models.Post.id).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
         """ .filter(models.Post.owner_id == current_user.id) """ # filter the posts that belong to the current user, but on social media we need to allow the user to see all the posts even if they do not belong to him 
         
-        if not posts:
+#        results = db.query(models.Post, func.count(models.Vote.post_id).label("votes"))\
+#        .join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True)\
+#        .group_by(models.Post.id).all() """
+        if search == None:
+                    results = db.query(
+                            models.Post,
+                            func.coalesce(func.count(models.Vote.post_id), 0).label("votes")
+                        ).join(
+                            models.Vote,
+                            models.Post.id == models.Vote.post_id,
+                            isouter=True
+                        ).group_by(
+                            models.Post.id                        
+                        ).limit(limit).offset(skip).all()
+        else:
+                    results = db.query(
+                            models.Post,
+                            func.coalesce(func.count(models.Vote.post_id), 0).label("votes")
+                        ).join(
+                            models.Vote,
+                            models.Post.id == models.Vote.post_id,
+                            isouter=True
+                        ).group_by(
+                            models.Post.id
+                        ).filter(
+                            models.Post.title.ilike(f"%{search}%")
+                        ).limit(limit).offset(skip).all()
+
+        
+        print(results)
+        if not results:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                                 detail=f"Posts were not found")
         
@@ -41,7 +73,8 @@ def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.
             detail=f"Error retrieving posts: {str(e)}"
         )
     
-    return posts   # return the posts that belong to the current user 
+    return results
+          # return the posts that belong to the current user 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
@@ -63,9 +96,25 @@ def get_latest_post():
     post = my_posts[len(my_posts) - 1]
     return post
 
-@router.get("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.Post)
+@router.get("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.PostOut)
 def get_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
-    post = db.query(models.Post).filter(models.Post.id == id).first()
+    #post = db.query(models.Post).filter(models.Post.id == id).first()
+
+    post = db.query(
+            models.Post,
+            func.count(models.Vote.post_id).label("votes")
+        ).join(
+            models.Vote,
+            models.Post.id == models.Vote.post_id,
+            isouter=True
+        ).join(
+            models.User,
+            models.Post.owner_id == models.User.id,
+            isouter=True
+        ).group_by(
+            models.Post.id,
+            models.User.id
+        ).filter(models.Post.id == id).first()
 
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
@@ -75,6 +124,7 @@ def get_post(id: int, db: Session = Depends(get_db), current_user: int = Depends
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     post = db.query(models.Post).filter(models.Post.id == id)
+
     if not post.first(): # if post not found
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"Post with id {id} was not found")

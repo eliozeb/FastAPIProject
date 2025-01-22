@@ -1,11 +1,10 @@
 from fastapi import FastAPI, status
 from . import models
 from .database import engine  # After creating the database and its tables, we can remov from the import statement the Base class and the get_db function
-from .routers import auth, post, user
+from .routers import auth, post, user, vote
 from .config import settings
 
 print(settings.database_username)
-
 
 # Create the database tables 
 models.Base.metadata.create_all(bind=engine)
@@ -37,6 +36,8 @@ def find_index_post(id):
 app.include_router(post.router) # include the post router in the app instance of FastAPI 
 app.include_router(user.router) # include the user router in the app instance of FastAPI 
 app.include_router(auth.router) # include the auth router in the app instance of FastAPI
+app.include_router(vote.router) # include the vote router in the app instance of FastAPI
+
 
 @app.get("/", status_code=status.HTTP_200_OK)
 def root():

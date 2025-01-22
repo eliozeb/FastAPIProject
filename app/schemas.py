@@ -1,8 +1,20 @@
 
-from typing import Optional
+from typing import Annotated, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr
 from datetime import datetime
+from pydantic.types import conint
 # pydantic : a library fot Type of the model
+
+
+
+############################################################...... Votes Schemas... ##############################################################
+
+class Vote(BaseModel):
+    post_id: int
+    dir: Annotated[int, conint(le=1)]
+
+
+
 
 ############################################################# ..... User Schemas.... #############################################################
 
@@ -40,12 +52,18 @@ class PostBase(BaseModel):
 class PostCreate(PostBase):
     pass
 
-class Post(PostBase): # PostBase is the parent class of Post class 
+class Post(PostBase):
     id: int
     created_at: datetime
     owner_id: int
     owner: UserOut
-        
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class PostOut(BaseModel):
+    Post: Post
+    votes: int
+    
     model_config = ConfigDict(from_attributes=True)
 
 
