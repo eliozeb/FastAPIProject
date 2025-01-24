@@ -3,14 +3,25 @@ from . import models
 from .database import engine  # After creating the database and its tables, we can remov from the import statement the Base class and the get_db function
 from .routers import auth, post, user, vote
 from .config import settings
+from fastapi.middleware.cors import CORSMiddleware
 
 print(settings.database_username)
 
 # Create the database tables 
-models.Base.metadata.create_all(bind=engine)
+#models.Base.metadata.create_all(bind=engine) 
 
 
 app = FastAPI()
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware, # 
+    allow_origins=origins, #
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    )
 
 # The following code is for demonstration purposes only 
 """ my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1}, 
@@ -41,4 +52,4 @@ app.include_router(vote.router) # include the vote router in the app instance of
 
 @app.get("/", status_code=status.HTTP_200_OK)
 def root():
-    return "welcome to my api"
+    return {"message": "Welcome to my api"}
