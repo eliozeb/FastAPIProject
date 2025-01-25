@@ -2,10 +2,11 @@
 echo === Setting up Heroku PostgreSQL ===
 
 REM Set app name
-
+SET APP_NAME=fastapi-elias
 
 REM Create PostgreSQL addon (essential-0 tier for eco dynos)
-
+echo Creating PostgreSQL addon...
+heroku addons:create heroku-postgresql:essential-0 --app %APP_NAME%
 
 REM Wait for provision
 timeout /t 5
