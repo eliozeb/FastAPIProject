@@ -27,7 +27,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['Users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('user_id', 'post_id')
     )
-    op.drop_table('products')
     op.alter_column('Posts', 'title',
                existing_type=sa.VARCHAR(length=255),
                nullable=True)
@@ -49,14 +48,5 @@ def downgrade() -> None:
     op.alter_column('Posts', 'title',
                existing_type=sa.VARCHAR(length=255),
                nullable=False)
-    op.create_table('products',
-    sa.Column('name', sa.VARCHAR(), autoincrement=False, nullable=False),
-    sa.Column('price', sa.INTEGER(), autoincrement=False, nullable=False),
-    sa.Column('id', sa.INTEGER(), autoincrement=True, nullable=False),
-    sa.Column('is_sale', sa.BOOLEAN(), server_default=sa.text('false'), autoincrement=False, nullable=True),
-    sa.Column('inventory', sa.INTEGER(), server_default=sa.text('0'), autoincrement=False, nullable=False),
-    sa.Column('created_at', postgresql.TIMESTAMP(timezone=True), server_default=sa.text('now()'), autoincrement=False, nullable=False),
-    sa.PrimaryKeyConstraint('id', name='products_pkey')
-    )
     op.drop_table('Votes')
     # ### end Alembic commands ###
