@@ -52,4 +52,8 @@ app.include_router(vote.router) # include the vote router in the app instance of
 
 @app.get("/", status_code=status.HTTP_200_OK)
 def root():
-    return {"message": "Welcome to my api"}
+    return {
+        "message": "Welcome to FastAPI Project",
+        "documentation": "/docs",
+        "github": "https://github.com/eliozeb/FastAPIProject"
+    }
